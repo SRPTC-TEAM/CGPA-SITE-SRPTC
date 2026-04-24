@@ -2113,6 +2113,8 @@ function saveDraft(extra) {
         gpas,
         dept,
         sem,
+        regNo:     currentStudentRegNo,
+        name:      currentStudentName || existing.name || currentStudentRegNo,
         lastSaved: new Date().toISOString()
     };
     localStorage.setItem(draftKey(), JSON.stringify(draft));
@@ -3202,8 +3204,8 @@ function showAdminDashboard() {
                 <!-- Empty state -->
                 <div id="resultsEmpty" style="display:none;text-align:center;padding:3rem 1rem;color:rgba(255,255,255,0.25);">
                     <div style="font-size:3rem;margin-bottom:0.8rem;">📭</div>
-                    <div style="font-size:0.95rem;font-weight:600;">No results uploaded yet</div>
-                    <div style="font-size:0.8rem;margin-top:0.4rem;">Upload an Excel file via <strong style="color:rgba(255,255,255,0.45);">Update via Excel</strong> to see student results here.</div>
+                    <div style="font-size:0.95rem;font-weight:600;">No results found</div>
+                    <div style="font-size:0.8rem;margin-top:0.4rem;">Results appear here when students calculate their GPA/CGPA, or when you upload an Excel file via <strong style="color:rgba(255,255,255,0.45);">Update via Excel</strong>.</div>
                 </div>
             </div>
             <div class="admin-tab-panel" id="tab-bulkimport">
@@ -4173,6 +4175,18 @@ CREATE POLICY "allow_all" ON student_photos
             const v2 = localStorage.getItem(k2);
             if (v2) return JSON.parse(v2);
         } catch(e) {}
+        // Last resort: scan all draft_ keys and match by stored regNo field
+        try {
+            const target = regNo.trim().toLowerCase();
+            for (let i = 0; i < localStorage.length; i++) {
+                const lsKey = localStorage.key(i);
+                if (!lsKey || !lsKey.startsWith('draft_')) continue;
+                const raw = localStorage.getItem(lsKey);
+                if (!raw) continue;
+                const parsed = JSON.parse(raw);
+                if (parsed && (parsed.regNo || '').trim().toLowerCase() === target) return parsed;
+            }
+        } catch(e) {}
         return null;
     }
 
@@ -4211,7 +4225,29 @@ CREATE POLICY "allow_all" ON student_photos
             AUTO:   { label:'Automobile Engineering (AUTO)',      icon:'🚗', color:'#6366f1' },
         };
 
-        let students = getUniqueStudents().filter(s =>
+        // Build student map from login logs first
+        const stuMap = {};
+        getUniqueStudents().forEach(s => {
+            const mk = s.regNo.trim().toLowerCase().replace(/\s+/g,'_');
+            stuMap[mk] = s;
+        });
+
+        // Also include any Excel-imported (draft-only) students with GPA data
+        for (let i = 0; i < localStorage.length; i++) {
+            const lsKey = localStorage.key(i);
+            if (!lsKey || !lsKey.startsWith('draft_')) continue;
+            const mk = lsKey.slice(6);
+            if (stuMap[mk]) continue; // already from logs
+            try {
+                const draft = JSON.parse(localStorage.getItem(lsKey) || 'null');
+                if (!draft || !draft.gpas || !Object.keys(draft.gpas).length) continue;
+                const regNo = (draft.regNo || '').trim() || mk.toUpperCase();
+                const name  = (draft.name  || '').trim() || regNo;
+                stuMap[mk] = { regNo, name, logs: [], firstSeen: draft.lastSaved || '', lastSeen: draft.lastSaved || '' };
+            } catch(e) {}
+        }
+
+        let students = Object.values(stuMap).filter(s =>
             !filter || s.name.toLowerCase().includes(filter.toLowerCase()) || s.regNo.toLowerCase().includes(filter.toLowerCase())
         );
 
@@ -4344,11 +4380,16 @@ CREATE POLICY "allow_all" ON student_photos
 
                 // The map key is the part after "draft_"
                 const mapKey = lsKey.slice(6);
-                if (map[mapKey]) continue; // already from logs
 
                 // Best-effort: prefer values stored in draft, fall back to the key
                 const regNo = (draft.regNo || draft.reg_no || '').trim() || mapKey.toUpperCase();
                 const name  = (draft.name  || '').trim()                 || regNo;
+
+                if (map[mapKey]) {
+                    // Already from logs — update name if draft has a better one
+                    if (name && name !== regNo) map[mapKey].name = name;
+                    continue;
+                }
 
                 map[mapKey] = {
                     regNo,
