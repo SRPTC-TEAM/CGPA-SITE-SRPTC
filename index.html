@@ -1678,6 +1678,12 @@ let LOGO_DATA_URL = '';
 
 const SUPABASE_CONFIG_KEY = 'srptc_supabase_config';
 
+// Auto-populate localStorage with built-in credentials on every load
+(function() {
+    const builtIn = { url: 'https://pzujdwxsyskrvzglujig.supabase.co', anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6dWpkd3hzeXNrcnZ6Z2x1amlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5ODE0OTUsImV4cCI6MjA5MTU1NzQ5NX0.dcw3u8wski7Gjuf3QuHKpvidyJzkdskQQULgklm7iok' };
+    try { localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify(builtIn)); } catch(e) {}
+})();
+
 /* ══════════════════════════════════════════════════════════════
    BUILT-IN SUPABASE SETUP WIZARD
    Shows a one-time overlay when no Supabase config is stored.
@@ -1685,16 +1691,8 @@ const SUPABASE_CONFIG_KEY = 'srptc_supabase_config';
    Students never see this — it only appears before first use.
 ══════════════════════════════════════════════════════════════ */
 (function initSupabaseWizard() {
-    function alreadyConfigured() {
-        try {
-            const raw = localStorage.getItem(SUPABASE_CONFIG_KEY);
-            if (!raw) return false;
-            const cfg = JSON.parse(raw);
-            return !!(cfg.url && cfg.anonKey);
-        } catch(e) { return false; }
-    }
-
-    if (alreadyConfigured()) return; // already set up — skip wizard
+    // Credentials are built-in — wizard is permanently disabled
+    return;
 
     // Inject wizard CSS
     const style = document.createElement('style');
@@ -1796,16 +1794,16 @@ const SUPABASE_CONFIG_KEY = 'srptc_supabase_config';
 })();
 
 
+const SUPABASE_BUILTIN_URL = 'https://pzujdwxsyskrvzglujig.supabase.co';
+const SUPABASE_BUILTIN_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6dWpkd3hzeXNrcnZ6Z2x1amlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5ODE0OTUsImV4cCI6MjA5MTU1NzQ5NX0.dcw3u8wski7Gjuf3QuHKpvidyJzkdskQQULgklm7iok';
+
 function getSupabaseConfig() {
-    try {
-        const raw = localStorage.getItem(SUPABASE_CONFIG_KEY);
-        return raw ? JSON.parse(raw) : { url: '', anonKey: '' };
-    } catch(e) { return { url: '', anonKey: '' }; }
+    return { url: SUPABASE_BUILTIN_URL, anonKey: SUPABASE_BUILTIN_KEY };
 }
 
 function saveSupabaseConfig(url, anonKey) {
-    localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url: url.trim(), anonKey: anonKey.trim() }));
-    _sbClient = null; // force reinit
+    // Config is now built-in; no-op to avoid overwriting hardcoded values
+    _sbClient = null;
 }
 
 let _sbClient = null;
