@@ -1684,16 +1684,126 @@ const SUPABASE_CONFIG_KEY = 'srptc_supabase_config';
     try { localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify(builtIn)); } catch(e) {}
 })();
 
-/* Supabase credentials are built-in — no setup wizard needed */
-const SUPABASE_URL  = 'https://pzujdwxsyskrvzglujig.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6dWpkd3hzeXNrcnZ6Z2x1amlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5ODE0OTUsImV4cCI6MjA5MTU1NzQ5NX0.dcw3u8wski7Gjuf3QuHKpvidyJzkdskQQULgklm7iok';
+/* ══════════════════════════════════════════════════════════════
+   BUILT-IN SUPABASE SETUP WIZARD
+   Shows a one-time overlay when no Supabase config is stored.
+   Admin enters URL + Anon Key once; saved permanently.
+   Students never see this — it only appears before first use.
+══════════════════════════════════════════════════════════════ */
+(function initSupabaseWizard() {
+    // Credentials are built-in — wizard is permanently disabled
+    return;
+
+    // Inject wizard CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        #sbWizardOverlay {
+            position:fixed;inset:0;z-index:99999;
+            background:rgba(5,12,25,0.97);backdrop-filter:blur(16px);
+            display:flex;align-items:center;justify-content:center;
+            animation:fadeIn 0.3s ease;
+        }
+        #sbWizardBox {
+            background:linear-gradient(145deg,#0e2440,#091830);
+            border:1px solid rgba(245,158,11,0.35);
+            border-radius:2rem;padding:2.5rem 2.2rem;
+            width:90%;max-width:460px;
+            box-shadow:0 30px 80px rgba(0,0,0,0.7),0 0 0 1px rgba(245,158,11,0.1);
+            animation:slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        #sbWizardBox .wiz-icon{font-size:2.8rem;display:block;text-align:center;margin-bottom:0.6rem;}
+        #sbWizardBox h2{font-size:1.35rem;font-weight:800;color:#fff;text-align:center;margin-bottom:0.3rem;}
+        #sbWizardBox p{font-size:0.82rem;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:1.8rem;line-height:1.6;}
+        #sbWizardBox .wiz-label{display:block;font-size:0.72rem;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.4rem;}
+        #sbWizardBox .wiz-input{width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:0.75rem;padding:0.8rem 1rem;color:#fff;font-family:'Sora',sans-serif;font-size:0.9rem;outline:none;margin-bottom:1rem;transition:border-color 0.2s,box-shadow 0.2s;}
+        #sbWizardBox .wiz-input:focus{border-color:rgba(245,158,11,0.6);box-shadow:0 0 0 3px rgba(245,158,11,0.12);}
+        #sbWizardBox .wiz-input::placeholder{color:rgba(255,255,255,0.2);}
+        #sbWizardBox .wiz-btn{width:100%;padding:0.9rem;border:none;border-radius:0.8rem;font-family:'Sora',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.2s;background:linear-gradient(135deg,#f59e0b,#d97706);color:#0b1f3a;box-shadow:0 4px 20px rgba(245,158,11,0.35);}
+        #sbWizardBox .wiz-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,158,11,0.5);}
+        #sbWizardBox .wiz-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+        #sbWizardBox .wiz-msg{font-size:0.8rem;text-align:center;padding:0.5rem 0.8rem;border-radius:0.6rem;margin-top:0.8rem;display:none;}
+        #sbWizardBox .wiz-hint{font-size:0.72rem;color:rgba(255,255,255,0.3);text-align:center;margin-top:1rem;line-height:1.6;}
+        #sbWizardBox .wiz-hint a{color:rgba(245,158,11,0.7);text-decoration:none;}
+        #sbWizardBox .wiz-steps{display:flex;gap:0.5rem;justify-content:center;margin-bottom:1.5rem;}
+        #sbWizardBox .wiz-step{background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:100px;padding:0.2rem 0.8rem;font-size:0.68rem;color:#fbbf24;font-weight:600;}
+    `;
+    document.head.appendChild(style);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sbWizardOverlay';
+    overlay.innerHTML = `
+        <div id="sbWizardBox">
+            <span class="wiz-icon">🗄️</span>
+            <h2>Connect Supabase Database</h2>
+            <p>This is a one-time setup. Enter your Supabase project credentials below to enable automatic student data sync across all devices.</p>
+            <div class="wiz-steps">
+                <div class="wiz-step">📋 One-time setup</div>
+                <div class="wiz-step">🔄 Auto-sync enabled</div>
+                <div class="wiz-step">🔒 Stored securely</div>
+            </div>
+            <label class="wiz-label" for="wizUrl">Supabase Project URL</label>
+            <input class="wiz-input" id="wizUrl" type="url" placeholder="https://xxxxxxxxxxxx.supabase.co" autocomplete="off" spellcheck="false">
+            <label class="wiz-label" for="wizKey">Supabase Anon (Public) Key</label>
+            <input class="wiz-input" id="wizKey" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." autocomplete="off" spellcheck="false">
+            <button class="wiz-btn" id="wizSaveBtn">✅ Connect & Save</button>
+            <div class="wiz-msg" id="wizMsg"></div>
+            <div class="wiz-hint">
+                Find these in your Supabase project → <strong>Settings → API</strong><br>
+                <a href="https://supabase.com/dashboard" target="_blank">Open Supabase Dashboard ↗</a>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    function showWizMsg(msg, ok) {
+        const el = document.getElementById('wizMsg');
+        el.textContent = msg;
+        el.style.display = 'block';
+        el.style.background = ok ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+        el.style.border = ok ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(239,68,68,0.3)';
+        el.style.color = ok ? '#34d399' : '#fca5a5';
+    }
+
+    document.getElementById('wizSaveBtn').addEventListener('click', async function() {
+        const url = (document.getElementById('wizUrl').value || '').trim();
+        const key = (document.getElementById('wizKey').value || '').trim();
+        if (!url || !key) { showWizMsg('⚠️ Both fields are required.', false); return; }
+        if (!url.startsWith('https://')) { showWizMsg('❌ URL must start with https://', false); return; }
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = '🔄 Testing connection…';
+        showWizMsg('Testing connection to Supabase…', true);
+        try {
+            const tmpClient = supabase.createClient(url, key);
+            // Test connection by selecting from student_logs
+            const { error } = await tmpClient.from('student_logs').select('id').limit(1);
+            if (error && error.code !== 'PGRST116') { // PGRST116 = empty table, which is fine
+                showWizMsg('❌ Connection failed: ' + error.message, false);
+                btn.disabled = false; btn.textContent = '✅ Connect & Save';
+                return;
+            }
+            localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify({ url, anonKey: key }));
+            _sbClient = null; // force reinit
+            showWizMsg('✅ Connected! Loading your data…', true);
+            setTimeout(() => { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 400); }, 1200);
+        } catch(e) {
+            showWizMsg('❌ Error: ' + e.message, false);
+            btn.disabled = false; btn.textContent = '✅ Connect & Save';
+        }
+    });
+})();
+
+
+const SUPABASE_BUILTIN_URL = 'https://pzujdwxsyskrvzglujig.supabase.co';
+const SUPABASE_BUILTIN_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6dWpkd3hzeXNrcnZ6Z2x1amlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5ODE0OTUsImV4cCI6MjA5MTU1NzQ5NX0.dcw3u8wski7Gjuf3QuHKpvidyJzkdskQQULgklm7iok';
 
 function getSupabaseConfig() {
-    return { url: SUPABASE_URL, anonKey: SUPABASE_ANON };
+    return { url: SUPABASE_BUILTIN_URL, anonKey: SUPABASE_BUILTIN_KEY };
 }
 
 function saveSupabaseConfig(url, anonKey) {
-    _sbClient = null; // no-op: credentials are hard-coded
+    // Config is now built-in; no-op to avoid overwriting hardcoded values
+    _sbClient = null;
 }
 
 let _sbClient = null;
@@ -2295,6 +2405,25 @@ function showStudentModal(prefill = {}) {
             localStorage.setItem('studentRegNo', reg);
             if (loginDept) localStorage.setItem('studentDept', loginDept);
             addStudentLog(name, reg, prefill.name ? 'updated' : 'login');
+
+            // ── AUTO-REGISTER: ensure draft exists immediately on login so student
+            //    always appears in Admin → Students tab and Results tab ──────────────
+            (function ensureDraftOnLogin() {
+                const draftKeyLogin = 'draft_' + reg.trim().toLowerCase().replace(/\s+/g,'_');
+                let existingDraftLogin = null;
+                try { existingDraftLogin = JSON.parse(localStorage.getItem(draftKeyLogin) || 'null'); } catch(e) {}
+                if (!existingDraftLogin) existingDraftLogin = {};
+                // Merge-in identity fields without overwriting existing GPA/grade data
+                const updatedDraft = {
+                    ...existingDraftLogin,
+                    regNo:     reg,
+                    name:      name,
+                    dept:      loginDept || existingDraftLogin.dept || 'ECE',
+                    lastSaved: existingDraftLogin.lastSaved || new Date().toISOString()
+                };
+                localStorage.setItem(draftKeyLogin, JSON.stringify(updatedDraft));
+            })();
+            // ──────────────────────────────────────────────────────────────────────
 
             _sbPullPhoto(reg).then(() => updateStudentDisplay());
 
@@ -3359,6 +3488,26 @@ ALTER TABLE student_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "allow_all" ON student_logs
   FOR ALL USING (true) WITH CHECK (true);
 
+-- Student CGPA & Grade data (required for Results tab cloud sync)
+CREATE TABLE student_data (
+  reg_no         TEXT PRIMARY KEY,
+  name           TEXT,
+  dept           TEXT,
+  sem1_gpa       NUMERIC,
+  sem2_gpa       NUMERIC,
+  sem3_gpa       NUMERIC,
+  sem4_gpa       NUMERIC,
+  sem5_gpa       NUMERIC,
+  sem6_gpa       NUMERIC,
+  cgpa           NUMERIC,
+  classification TEXT,
+  grades_json    TEXT,
+  last_updated   TEXT
+);
+ALTER TABLE student_data ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON student_data
+  FOR ALL USING (true) WITH CHECK (true);
+
 -- Passport photo storage (optional)
 CREATE TABLE student_photos (
   reg_no     TEXT PRIMARY KEY,
@@ -4120,7 +4269,7 @@ CREATE POLICY "allow_all" ON student_photos
             stuMap[mk] = s;
         });
 
-        // Also include any Excel-imported (draft-only) students with GPA data
+        // Also include any Excel-imported (draft-only) students with or without GPA data
         for (let i = 0; i < localStorage.length; i++) {
             const lsKey = localStorage.key(i);
             if (!lsKey || !lsKey.startsWith('draft_')) continue;
@@ -4128,9 +4277,10 @@ CREATE POLICY "allow_all" ON student_photos
             if (stuMap[mk]) continue; // already from logs
             try {
                 const draft = JSON.parse(localStorage.getItem(lsKey) || 'null');
-                if (!draft || !draft.gpas || !Object.keys(draft.gpas).length) continue;
+                if (!draft) continue;
                 const regNo = (draft.regNo || '').trim() || mk.toUpperCase();
                 const name  = (draft.name  || '').trim() || regNo;
+                if (!regNo || regNo === mk.toUpperCase() && !draft.name) continue; // skip anonymous drafts
                 stuMap[mk] = { regNo, name, logs: [], firstSeen: draft.lastSaved || '', lastSeen: draft.lastSaved || '' };
             } catch(e) {}
         }
@@ -5837,7 +5987,8 @@ function saveCurrentSemesterGPA() {
         inp.value = res.gpa.toFixed(2);
         const st = document.getElementById(`sem${sem}Status`);
         if (st) st.textContent = statusLabel(res.gpa);
-        saveDraft({});
+        // Save with identity fields so student appears in admin Results tab immediately
+        saveDraft({ name: currentStudentName, regNo: currentStudentRegNo });
 
         // Auto-advance to next semester
         const nextSem = sem + 1;
@@ -5875,7 +6026,10 @@ function calculateOverallCGPA() {
         cgpa >= 8.5 ? '🏅 First Class with Distinction' :
         cgpa >= 6.5 ? '🎓 First Class' : '📜 Second Class';
     document.getElementById('gradeSummary').textContent = `📊 ${count}/6 semesters completed`;
-    saveDraft({});
+    // Save draft with full identity so student is visible in admin Results tab
+    saveDraft({ name: currentStudentName, regNo: currentStudentRegNo });
+    // Also push updated data to Supabase cloud
+    try { _sbPushStudentData(); } catch(e) {}
 }
 
 function resetAllGPAs() {
